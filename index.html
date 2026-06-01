@@ -379,7 +379,7 @@ h1,h2,h3{font-family:'Syne',sans-serif;}
       <div class="ai-hdr-icon">🤖</div>
       <div class="ai-hdr-info">
         <div class="ai-hdr-name">Horizen AI</div>
-        <div class="ai-hdr-model">Llama 3 70B · Groq</div>
+        <div class="ai-hdr-model">HorizenAPI-1b</div>
       </div>
       <button class="ai-close" onclick="toggleAI()">✕</button>
     </div>
@@ -407,7 +407,7 @@ dayjs.extend(dayjs_plugin_relativeTime);
 const SUPABASE_URL = 'https://eekwlctegngxdzannddi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhaRLUgoEVB6iFTMJRwwEw_Bi7v-Qnq';
 const GROQ_KEY    = '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'; // replace with your key
-const GROQ_MODEL  = 'llama3-70b-8192';
+const GROQ_MODEL  = 'openai/gpt-oss-120b';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
