@@ -191,25 +191,99 @@ h1,h2,h3{font-family:'Syne',sans-serif;}
 .icon-btn{width:28px;height:28px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:14px;transition:all .2s;}
 .icon-btn:hover{color:var(--accent2);border-color:var(--accent);}
 
-/* CALL NOTIFICATION (incoming/outgoing) */
-.call-notif{position:fixed;top:16px;right:16px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:16px 20px;width:300px;display:none;z-index:3000;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:slideIn .3s ease;}
+/* ── INCOMING CALL NOTIFICATION BANNER ── */
 @keyframes slideIn{from{transform:translateX(110%);opacity:0;}to{transform:translateX(0);opacity:1;}}
-.call-notif.show{display:block;}
-.cn-type{font-size:10px;letter-spacing:1px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;}
-.cn-who{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.cn-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:15px;flex-shrink:0;}
-.cn-av.pulse{animation:pulse-ring 1.5s infinite;}
-@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.5);}50%{box-shadow:0 0 0 10px rgba(108,99,255,0);}}
-.cn-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
-.cn-sub{font-size:11px;color:var(--text2);}
-.cn-btns{display:flex;gap:8px;}
-.cn-btn{flex:1;padding:9px;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;transition:opacity .2s;}
-.cn-btn:hover{opacity:.85;}
-.cn-btn.acc{background:var(--green);color:var(--bg);}
-.cn-btn.dec{background:var(--red);color:#fff;}
-.cn-btn.cancel{background:var(--bg3);border:1px solid var(--border);color:var(--text);width:100%;}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.6);}50%{box-shadow:0 0 0 14px rgba(108,99,255,0);}}
 
-/* VIDEO CALL */
+#incoming-notif{
+  position:fixed;top:16px;right:16px;
+  background:var(--bg2);border:1px solid rgba(108,99,255,.35);
+  border-radius:20px;padding:18px 20px;width:310px;
+  display:none;z-index:3000;
+  box-shadow:0 24px 70px rgba(0,0,0,.7),0 0 0 1px rgba(108,99,255,.15);
+  animation:slideIn .35s cubic-bezier(.22,1,.36,1);
+}
+#incoming-notif.show{display:block;}
+.inc-header{display:flex;align-items:center;gap:4px;margin-bottom:14px;}
+.inc-pill{font-size:10px;letter-spacing:1.2px;color:var(--accent2);text-transform:uppercase;font-family:'Syne',sans-serif;font-weight:700;background:rgba(108,99,255,.12);padding:3px 9px;border-radius:20px;}
+.inc-body{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+.inc-av-wrap{position:relative;flex-shrink:0;}
+.inc-av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;animation:pulse-ring 1.6s infinite;}
+.inc-text{}
+.inc-name{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:2px;}
+.inc-sub{font-size:12px;color:var(--text2);}
+.inc-btns{display:flex;gap:8px;}
+.inc-btn{flex:1;padding:11px;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.inc-btn:hover{transform:scale(1.03);}
+.inc-btn.acc{background:var(--green);color:#000;}
+.inc-btn.dec{background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.3);color:var(--red);}
+
+/* ── OUTGOING CALL NOTIFICATION ── */
+#outgoing-notif{
+  position:fixed;top:16px;right:16px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:20px;padding:18px 20px;width:310px;
+  display:none;z-index:3000;
+  box-shadow:0 24px 70px rgba(0,0,0,.7);
+  animation:slideIn .35s cubic-bezier(.22,1,.36,1);
+}
+#outgoing-notif.show{display:block;}
+.out-body{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+.out-av{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;flex-shrink:0;}
+.out-dots{display:flex;gap:4px;margin-top:4px;}
+.out-dots span{width:5px;height:5px;border-radius:50%;background:var(--accent2);animation:blink 1.4s infinite;}
+.out-dots span:nth-child(2){animation-delay:.2s;}
+.out-dots span:nth-child(3){animation-delay:.4s;}
+
+/* ── AUDIO CALL SCREEN (full overlay) ── */
+#audio-overlay{
+  position:fixed;inset:0;z-index:2000;
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 40% 30%,#1e1060 0%,#0a0a0f 65%);
+}
+#audio-overlay.show{display:flex;}
+
+/* animated background rings */
+.audio-bg-rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;}
+.audio-ring{position:absolute;border-radius:50%;border:1px solid rgba(108,99,255,.12);animation:expand 3s ease-out infinite;}
+.audio-ring:nth-child(1){width:260px;height:260px;animation-delay:0s;}
+.audio-ring:nth-child(2){width:380px;height:380px;animation-delay:.7s;}
+.audio-ring:nth-child(3){width:500px;height:500px;animation-delay:1.4s;}
+.audio-ring:nth-child(4){width:640px;height:640px;animation-delay:2.1s;}
+@keyframes expand{0%{opacity:.6;transform:scale(.8);}100%{opacity:0;transform:scale(1.15);}}
+
+.audio-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+.audio-call-av{
+  width:120px;height:120px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:46px;
+  margin-bottom:24px;
+  box-shadow:0 0 0 8px rgba(108,99,255,.15),0 0 60px rgba(108,99,255,.35);
+}
+.audio-call-name{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;margin-bottom:8px;letter-spacing:-.5px;}
+.audio-call-status{font-size:14px;color:var(--text2);margin-bottom:6px;}
+.audio-call-timer{font-size:22px;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2);margin-bottom:48px;min-height:32px;letter-spacing:1px;}
+
+.audio-ctrls{display:flex;gap:20px;align-items:center;}
+.acctrl{
+  display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
+}
+.acctrl-btn{
+  width:60px;height:60px;border-radius:50%;border:none;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:all .2s;cursor:pointer;
+}
+.acctrl-btn.mute-btn{background:rgba(255,255,255,.1);color:#fff;}
+.acctrl-btn.mute-btn:hover,.acctrl-btn.mute-btn.on{background:var(--yellow);color:#000;font-size:20px;}
+.acctrl-btn.spk-btn{background:rgba(255,255,255,.1);color:#fff;}
+.acctrl-btn.spk-btn:hover,.acctrl-btn.spk-btn.on{background:var(--accent);color:#fff;}
+.acctrl-btn.end-btn{background:var(--red);color:#fff;width:70px;height:70px;font-size:26px;}
+.acctrl-btn.end-btn:hover{background:#c62040;transform:scale(1.05);}
+.acctrl-label{font-size:11px;color:var(--text3);font-family:'Syne',sans-serif;font-weight:600;letter-spacing:.5px;}
+
+/* ── VIDEO CALL ── */
 #video-overlay{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:2000;}
 #video-overlay.show{display:flex;}
 #remote-video{width:100%;height:100%;object-fit:cover;background:#111;}
@@ -370,30 +444,70 @@ h1,h2,h3{font-family:'Syne',sans-serif;}
   </div>
 </div>
 
-<!-- CALL NOTIFICATION (outgoing - caller side) -->
-<div class="call-notif" id="outgoing-notif">
-  <div class="cn-type">CALLING</div>
-  <div class="cn-who">
-    <div class="cn-av pulse" id="out-av">?</div>
-    <div><div class="cn-name" id="out-name">...</div><div class="cn-sub" id="out-sub">Ringing...</div></div>
+<!-- INCOMING CALL NOTIFICATION -->
+<div id="incoming-notif">
+  <div class="inc-header">
+    <span class="inc-pill" id="inc-pill">📞 Incoming Call</span>
   </div>
-  <button class="cn-btn cancel" onclick="cancelCall()">📵 Cancel</button>
-</div>
-
-<!-- CALL NOTIFICATION (incoming) -->
-<div class="call-notif" id="incoming-notif">
-  <div class="cn-type">INCOMING CALL</div>
-  <div class="cn-who">
-    <div class="cn-av pulse" id="inc-av">?</div>
-    <div><div class="cn-name" id="inc-name">...</div><div class="cn-sub" id="inc-type">Audio Call</div></div>
+  <div class="inc-body">
+    <div class="inc-av-wrap">
+      <div class="inc-av" id="inc-av">?</div>
+    </div>
+    <div class="inc-text">
+      <div class="inc-name" id="inc-name">...</div>
+      <div class="inc-sub" id="inc-type">Audio Call</div>
+    </div>
   </div>
-  <div class="cn-btns">
-    <button class="cn-btn dec" onclick="declineCall()">✕ Decline</button>
-    <button class="cn-btn acc" onclick="acceptCall()">✓ Accept</button>
+  <div class="inc-btns">
+    <button class="inc-btn dec" onclick="declineCall()">📵 Decline</button>
+    <button class="inc-btn acc" onclick="acceptCall()">📞 Accept</button>
   </div>
 </div>
 
-<!-- VIDEO CALL OVERLAY (full screen, both sides after connect) -->
+<!-- OUTGOING CALL NOTIFICATION -->
+<div id="outgoing-notif">
+  <div class="inc-header"><span class="inc-pill" id="out-pill">📞 Calling...</span></div>
+  <div class="out-body">
+    <div class="out-av" id="out-av">?</div>
+    <div>
+      <div class="inc-name" id="out-name">...</div>
+      <div class="out-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+  <button class="inc-btn dec" style="width:100%" onclick="cancelCall()">📵 Cancel</button>
+</div>
+
+<!-- AUDIO CALL FULL SCREEN -->
+<div id="audio-overlay">
+  <div class="audio-bg-rings">
+    <div class="audio-ring"></div>
+    <div class="audio-ring"></div>
+    <div class="audio-ring"></div>
+    <div class="audio-ring"></div>
+  </div>
+  <div class="audio-content">
+    <div class="audio-call-av" id="audio-call-av">?</div>
+    <div class="audio-call-name" id="audio-call-name">...</div>
+    <div class="audio-call-status" id="audio-call-status">Connecting...</div>
+    <div class="audio-call-timer" id="audio-call-timer"></div>
+    <div class="audio-ctrls">
+      <div class="acctrl" onclick="toggleMuteAudio()">
+        <button class="acctrl-btn mute-btn" id="audio-mute-btn">🎤</button>
+        <span class="acctrl-label">MUTE</span>
+      </div>
+      <div class="acctrl" onclick="endCall()">
+        <button class="acctrl-btn end-btn">📵</button>
+        <span class="acctrl-label">END</span>
+      </div>
+      <div class="acctrl" onclick="toggleSpeaker()">
+        <button class="acctrl-btn spk-btn" id="audio-spk-btn">🔊</button>
+        <span class="acctrl-label">SPEAKER</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIDEO CALL OVERLAY -->
 <div id="video-overlay">
   <video id="remote-video" autoplay playsinline></video>
   <video id="local-video" autoplay playsinline muted></video>
@@ -413,7 +527,7 @@ h1,h2,h3{font-family:'Syne',sans-serif;}
       <div class="ai-hdr-icon">🤖</div>
       <div class="ai-hdr-info">
         <div class="ai-hdr-name">Horizen AI</div>
-        <div class="ai-hdr-model">Llama 3 70B · Groq</div>
+        <div class="ai-hdr-model">GPT-OSS 20B · Groq</div>
       </div>
       <button class="ai-close" onclick="toggleAI()">✕</button>
     </div>
@@ -441,7 +555,7 @@ dayjs.extend(dayjs_plugin_relativeTime);
 const SUPABASE_URL = 'https://eekwlctegngxdzannddi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YhaRLUgoEVB6iFTMJRwwEw_Bi7v-Qnq';
 const GROQ_KEY    = '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';
-const GROQ_MODEL  = 'openai/gpt-oss-120b';
+const GROQ_MODEL  = 'openai/gpt-oss-20b';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -561,6 +675,7 @@ async function onAuth(user) {
   loadFriends();
   subscribeCallChannel();
   subscribeFriendEvents();
+  requestNotifPermission();
 }
 
 // ── PANELS ──
@@ -744,6 +859,12 @@ function appendMsg(m){
   renderOneMsg(m,document.getElementById('msgs'));
   document.getElementById('msgs').scrollTop=9999;
   renderFriendList();
+  // Notify if message is from the other person and window not focused
+  if(m.sender_id!==myProfile.id){
+    const senderName=activeFriend?.display_name||activeFriend?.username||'Someone';
+    const preview=m.type==='file'?'📎 Sent a file':m.type==='call'?'📞 Call':m.content;
+    sendMsgNotif(senderName,preview);
+  }
 }
 function renderOneMsg(m,c){
   const mine=m.sender_id===myProfile.id;
@@ -918,14 +1039,69 @@ async function sendAI(){
 }
 
 // ── CALLS via SUPABASE REALTIME (no database table) ──
-// Uses a broadcast channel per user pair.
-// Signal types: 'offer', 'answer', 'ice', 'ringing', 'decline', 'hangup'
 const ICE_CONF={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
 let myCallCh=null;
 let currentCallType=null;
+let audioTimerInterval=null;
+let audioSeconds=0;
+let ringtoneCtx=null, ringtoneNode=null;
 
-function subscribeCallChannel() {
-  // Listen on my personal channel for incoming signals
+// ── SYSTEM / PUSH NOTIFICATIONS ──
+async function requestNotifPermission(){
+  if('Notification' in window && Notification.permission==='default'){
+    await Notification.requestPermission();
+  }
+}
+function sendSystemNotif(title, body, icon='📞'){
+  if(!('Notification' in window)) return;
+  if(Notification.permission!=='granted') return;
+  const n=new Notification(title,{
+    body,
+    icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%236c63ff"/><text y="44" x="10" font-size="40">'+icon+'</text></svg>',
+    badge:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="%236c63ff"/></svg>',
+    requireInteraction:true,
+    vibrate:[300,100,300]
+  });
+  n.onclick=()=>{ window.focus(); n.close(); };
+  // auto-close after 20s if not dismissed
+  setTimeout(()=>n.close(),20000);
+  return n;
+}
+function sendMsgNotif(senderName, text){
+  if(document.hasFocus()) return;
+  sendSystemNotif(`💬 ${senderName}`, text.substring(0,80),'💬');
+}
+
+// ── RINGTONE (Web Audio API, no file needed) ──
+function startRingtone(){
+  try{
+    ringtoneCtx=new(window.AudioContext||window.webkitAudioContext)();
+    let beat=0;
+    function ring(){
+      if(!ringtoneCtx) return;
+      const osc=ringtoneCtx.createOscillator();
+      const gain=ringtoneCtx.createGain();
+      osc.connect(gain); gain.connect(ringtoneCtx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(beat%2===0?880:1100,ringtoneCtx.currentTime);
+      gain.gain.setValueAtTime(0,ringtoneCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.18,ringtoneCtx.currentTime+0.02);
+      gain.gain.linearRampToValueAtTime(0,ringtoneCtx.currentTime+0.22);
+      osc.start(ringtoneCtx.currentTime);
+      osc.stop(ringtoneCtx.currentTime+0.25);
+      beat++;
+      if(beat%2===0) ringtoneNode=setTimeout(ring,600);
+      else ringtoneNode=setTimeout(ring,180);
+    }
+    ring();
+  }catch(e){}
+}
+function stopRingtone(){
+  clearTimeout(ringtoneNode); ringtoneNode=null;
+  if(ringtoneCtx){ try{ringtoneCtx.close();}catch(e){} ringtoneCtx=null; }
+}
+
+function subscribeCallChannel(){
   myCallCh=sb.channel(`call:${myProfile.id}`)
     .on('broadcast',{event:'ringing'},async p=>handleIncomingRing(p.payload))
     .on('broadcast',{event:'answer'}, p=>handleAnswer(p.payload))
@@ -935,59 +1111,77 @@ function subscribeCallChannel() {
     .subscribe();
 }
 
-function getFriendChannel(friendId) {
+function getFriendChannel(friendId){
   return sb.channel(`call:${friendId}`);
 }
 
-async function startCall(type) {
+async function startCall(type){
   if(!activeFriend) return;
   if(activeCall) return showToast('Already in a call');
   currentCallType=type;
   try{ localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==='video'}); }
-  catch(e){ return showToast('Cannot access mic/camera'); }
+  catch(e){ return showToast('Cannot access mic/camera — check browser permissions'); }
   peerConn=new RTCPeerConnection(ICE_CONF);
   localStream.getTracks().forEach(t=>peerConn.addTrack(t,localStream));
   if(type==='video') document.getElementById('local-video').srcObject=localStream;
   peerConn.onicecandidate=e=>{
-    if(e.candidate){
-      getFriendChannel(activeFriend.id).send({type:'broadcast',event:'ice',payload:{candidate:e.candidate,from:myProfile.id}});
-    }
+    if(e.candidate) getFriendChannel(activeFriend.id).send({type:'broadcast',event:'ice',payload:{candidate:e.candidate,from:myProfile.id}});
   };
   peerConn.ontrack=e=>{
     if(type==='video') document.getElementById('remote-video').srcObject=e.streams[0];
+    // for audio calls, attach remote stream to hidden audio element
+    if(type==='audio'){
+      let ael=document.getElementById('remote-audio');
+      if(!ael){ael=document.createElement('audio');ael.id='remote-audio';ael.autoplay=true;document.body.appendChild(ael);}
+      ael.srcObject=e.streams[0];
+    }
   };
   peerConn.onconnectionstatechange=()=>{
-    if(peerConn?.connectionState==='connected'){
-      document.getElementById('vid-status').textContent='Connected';
-      startCallTimer();
+    const s=peerConn?.connectionState;
+    if(s==='connected'){
+      if(type==='audio'){
+        document.getElementById('audio-call-status').textContent='Connected';
+        startAudioTimer();
+      } else {
+        document.getElementById('vid-status').textContent='Connected';
+        startCallTimer();
+      }
     }
+    if(s==='disconnected'||s==='failed') handleHangup({});
   };
   const offer=await peerConn.createOffer();
   await peerConn.setLocalDescription(offer);
-  // Send ringing signal to friend
-  await getFriendChannel(activeFriend.id).subscribe();
-  getFriendChannel(activeFriend.id).send({
-    type:'broadcast',event:'ringing',
-    payload:{from:myProfile.id,fromName:myProfile.display_name||myProfile.username,callType:type,offer:JSON.stringify(offer)}
-  });
-  // Show outgoing notification
+  const fc=getFriendChannel(activeFriend.id);
+  await fc.subscribe();
+  fc.send({type:'broadcast',event:'ringing',payload:{from:myProfile.id,fromName:myProfile.display_name||myProfile.username,callType:type,offer:JSON.stringify(offer)}});
   activeCall={id:Date.now(),type,friendId:activeFriend.id,role:'caller'};
   showOutgoingNotif(type,activeFriend);
 }
 
-async function handleIncomingRing(payload) {
+async function handleIncomingRing(payload){
   if(payload.from===myProfile.id) return;
-  // Store offer for accept
   incomingCallData={...payload};
   const name=payload.fromName;
+  const isVideo=payload.callType==='video';
+  // In-app notification
   document.getElementById('inc-av').textContent=name[0].toUpperCase();
   document.getElementById('inc-name').textContent=name;
-  document.getElementById('inc-type').textContent=payload.callType==='video'?'📹 Video Call':'📞 Audio Call';
+  document.getElementById('inc-type').textContent=isVideo?'📹 Video Call':'📞 Audio Call';
+  document.getElementById('inc-pill').textContent=isVideo?'📹 Incoming Video Call':'📞 Incoming Call';
   document.getElementById('incoming-notif').classList.add('show');
+  // Start ringtone
+  startRingtone();
+  // OS/browser push notification
+  sendSystemNotif(
+    isVideo?`📹 Video call from ${name}`:`📞 Call from ${name}`,
+    'Tap to open HorizenMessages and answer',
+    isVideo?'📹':'📞'
+  );
 }
 
-async function acceptCall() {
+async function acceptCall(){
   document.getElementById('incoming-notif').classList.remove('show');
+  stopRingtone();
   if(!incomingCallData) return;
   const {from,fromName,callType,offer}=incomingCallData;
   currentCallType=callType;
@@ -1000,19 +1194,27 @@ async function acceptCall() {
     document.getElementById('video-overlay').classList.add('show');
     document.getElementById('vid-call-name').textContent=fromName;
     document.getElementById('vid-status').textContent='Connecting...';
+  } else {
+    showAudioScreen(fromName, 'Connecting...');
   }
   peerConn.onicecandidate=e=>{
     if(e.candidate) getFriendChannel(from).send({type:'broadcast',event:'ice',payload:{candidate:e.candidate,from:myProfile.id}});
   };
   peerConn.ontrack=e=>{
     if(callType==='video') document.getElementById('remote-video').srcObject=e.streams[0];
+    if(callType==='audio'){
+      let ael=document.getElementById('remote-audio');
+      if(!ael){ael=document.createElement('audio');ael.id='remote-audio';ael.autoplay=true;document.body.appendChild(ael);}
+      ael.srcObject=e.streams[0];
+    }
   };
   peerConn.onconnectionstatechange=()=>{
-    if(peerConn?.connectionState==='connected'){
-      document.getElementById('vid-status').textContent='Connected';
-      if(callType!=='video') showToast(`📞 Connected with ${fromName}`);
-      startCallTimer();
+    const s=peerConn?.connectionState;
+    if(s==='connected'){
+      if(callType==='audio'){ document.getElementById('audio-call-status').textContent='Connected'; startAudioTimer(); }
+      else { document.getElementById('vid-status').textContent='Connected'; startCallTimer(); }
     }
+    if(s==='disconnected'||s==='failed') handleHangup({});
   };
   await peerConn.setRemoteDescription(JSON.parse(offer));
   const answer=await peerConn.createAnswer();
@@ -1022,76 +1224,112 @@ async function acceptCall() {
   fc.send({type:'broadcast',event:'answer',payload:{answer:JSON.stringify(answer),from:myProfile.id}});
   activeCall={id:Date.now(),type:callType,friendId:from,role:'callee',friendName:fromName};
   incomingCallData=null;
-  if(callType==='audio') showToast(`📞 Call connected with ${fromName}`);
 }
 
-async function handleAnswer(payload) {
+async function handleAnswer(payload){
   if(!peerConn) return;
   await peerConn.setRemoteDescription(JSON.parse(payload.answer));
-  // show video overlay for caller too if video
+  hideOutgoingNotif();
   if(currentCallType==='video'&&activeFriend){
     document.getElementById('video-overlay').classList.add('show');
     document.getElementById('vid-call-name').textContent=activeFriend.display_name||activeFriend.username;
     document.getElementById('vid-status').textContent='Connecting...';
+  } else if(currentCallType==='audio'&&activeFriend){
+    showAudioScreen(activeFriend.display_name||activeFriend.username,'Connecting...');
   }
-  hideOutgoingNotif();
 }
 
-async function handleRemoteICE(payload) {
+async function handleRemoteICE(payload){
   if(!peerConn||!payload.candidate) return;
   try{ await peerConn.addIceCandidate(new RTCIceCandidate(payload.candidate)); }catch(e){}
 }
 
-function handleDecline(payload) {
-  hideOutgoingNotif();
+function handleDecline(){
+  hideOutgoingNotif(); stopRingtone();
   document.getElementById('incoming-notif').classList.remove('show');
   showToast('📵 Call declined');
   cleanupCall();
 }
-function handleHangup(payload) {
-  showToast('📵 Call ended');
-  if(activeCall&&activeFriend){
-    const dur=callSeconds;
-    sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,content:`${currentCallType==='video'?'Video':'Voice'} call · ${dur>0?fmtDur(dur):'Missed'}`,type:'call'});
+function handleHangup(){
+  stopRingtone();
+  const dur=audioSeconds||callSeconds;
+  if(activeCall){
+    const partner=activeFriend||(activeCall.friendName?{id:activeCall.friendId,display_name:activeCall.friendName}:null);
+    if(partner&&myProfile){
+      sb.from('messages').insert({
+        sender_id:myProfile.id,sent_to:partner.id||activeCall.friendId,
+        content:`${currentCallType==='video'?'Video':'Voice'} call · ${dur>0?fmtDur(dur):'Missed'}`,
+        type:'call'
+      });
+    }
   }
+  showToast('📵 Call ended');
   cleanupCall();
 }
 
-function showOutgoingNotif(type,friend) {
+// ── AUDIO CALL SCREEN ──
+function showAudioScreen(name, status){
+  document.getElementById('audio-call-av').textContent=name[0].toUpperCase();
+  document.getElementById('audio-call-name').textContent=name;
+  document.getElementById('audio-call-status').textContent=status;
+  document.getElementById('audio-call-timer').textContent='';
+  document.getElementById('audio-overlay').classList.add('show');
+}
+function hideAudioScreen(){ document.getElementById('audio-overlay').classList.remove('show'); }
+function startAudioTimer(){
+  audioSeconds=0;
+  audioTimerInterval=setInterval(()=>{
+    audioSeconds++;
+    const m=Math.floor(audioSeconds/60),s=audioSeconds%60;
+    document.getElementById('audio-call-timer').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  },1000);
+}
+
+function showOutgoingNotif(type,friend){
   document.getElementById('out-av').textContent=(friend.display_name||friend.username)[0].toUpperCase();
   document.getElementById('out-name').textContent=friend.display_name||friend.username;
-  document.getElementById('out-sub').textContent=type==='video'?'📹 Video Call…':'📞 Calling…';
+  document.getElementById('out-pill').textContent=type==='video'?'📹 Video Calling...':'📞 Calling...';
   document.getElementById('outgoing-notif').classList.add('show');
 }
 function hideOutgoingNotif(){ document.getElementById('outgoing-notif').classList.remove('show'); }
 
-async function cancelCall() {
+async function cancelCall(){
   if(activeFriend) getFriendChannel(activeFriend.id).send({type:'broadcast',event:'hangup',payload:{from:myProfile.id}});
-  hideOutgoingNotif();
-  cleanupCall();
+  hideOutgoingNotif(); stopRingtone(); cleanupCall();
 }
-async function declineCall() {
+async function declineCall(){
   document.getElementById('incoming-notif').classList.remove('show');
+  stopRingtone();
   if(incomingCallData) getFriendChannel(incomingCallData.from).send({type:'broadcast',event:'decline',payload:{from:myProfile.id}});
   incomingCallData=null;
 }
-async function endCall() {
-  const dur=callSeconds;
-  if(activeCall&&activeFriend){
+async function endCall(){
+  const dur=audioSeconds||callSeconds;
+  if(activeCall){
     getFriendChannel(activeCall.friendId).send({type:'broadcast',event:'hangup',payload:{from:myProfile.id}});
-    await sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,content:`${currentCallType==='video'?'Video':'Voice'} call · ${dur>0?fmtDur(dur):'No answer'}`,type:'call'});
+    const partnerName=activeFriend?activeFriend.id:activeCall.friendId;
+    await sb.from('messages').insert({
+      sender_id:myProfile.id,sent_to:partnerName,
+      content:`${currentCallType==='video'?'Video':'Voice'} call · ${dur>0?fmtDur(dur):'No answer'}`,
+      type:'call'
+    });
   }
   cleanupCall();
 }
 function cleanupCall(){
-  clearInterval(callTimerInterval); callSeconds=0;
+  clearInterval(callTimerInterval); callTimerInterval=null; callSeconds=0;
+  clearInterval(audioTimerInterval); audioTimerInterval=null; audioSeconds=0;
+  stopRingtone();
   if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
   if(peerConn){ peerConn.close(); peerConn=null; }
   document.getElementById('video-overlay').classList.remove('show');
   document.getElementById('remote-video').srcObject=null;
   document.getElementById('local-video').srcObject=null;
-  hideOutgoingNotif();
+  const ael=document.getElementById('remote-audio'); if(ael){ael.srcObject=null;}
+  hideAudioScreen(); hideOutgoingNotif();
   document.getElementById('incoming-notif').classList.remove('show');
+  document.getElementById('audio-mute-btn').textContent='🎤';
+  document.getElementById('audio-mute-btn').classList.remove('on');
   activeCall=null; isMuted=false; isCameraOff=false; currentCallType=null;
 }
 function startCallTimer(){
@@ -1102,8 +1340,20 @@ function startCallTimer(){
     document.getElementById('vid-status').textContent=`${m}:${s.toString().padStart(2,'0')}`;
   },1000);
 }
-function toggleMute(){ isMuted=!isMuted; if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted); document.getElementById('vid-mute-btn').textContent=isMuted?'🔇':'🎤'; }
+function toggleMuteAudio(){
+  isMuted=!isMuted;
+  if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);
+  const btn=document.getElementById('audio-mute-btn');
+  btn.textContent=isMuted?'🔇':'🎤';
+  btn.classList.toggle('on',isMuted);
+}
+function toggleMute(){
+  isMuted=!isMuted;
+  if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);
+  document.getElementById('vid-mute-btn').textContent=isMuted?'🔇':'🎤';
+}
 function toggleCamera(){ isCameraOff=!isCameraOff; if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=!isCameraOff); }
+function toggleSpeaker(){ showToast('Speaker routing not available in browser'); }
 function fmtDur(s){ const m=Math.floor(s/60),sec=s%60; return m>0?`${m}m ${sec}s`:`${sec}s`; }
 function showToast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),3000); }
 
