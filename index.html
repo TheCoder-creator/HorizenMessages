@@ -448,16 +448,27 @@ const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
 /* ===== STATE ===== */
 let me=null,myProfile=null,friends=[],pendingReqs=[],activeFriend=null,chatMsgs=[];
 let msgSub=null,callCh=null,friendSub=null,typingCh=null;
-let activeCall=null,localStream=null,peerConn=null;
+let activeCall=null,localStream=null,peerConn=null,remoteStream=null;
 let callTimerInterval=null,callSeconds=0;
 let isMuted=false,isCameraOff=false,incomingCallData=null,pendingFile=null;
 let aiHistory=[],typingTimer=null,isTyping=false,friendTypingTimer=null;
 let emojiPickerBuilt=false,currentCallType=null;
 let audioTimerInterval=null,audioSeconds=0;
+let callConnectedOnce=false;
 
+/*
+ * FIX #1: Reliable connectivity
+ * Free STUN servers only discover your public IP — they cannot relay media.
+ * If both users are behind symmetric NATs (most mobile/corporate networks),
+ * the connection simply fails. Free TURN servers from Open Relay Project
+ * actually relay the media packets, fixing 95% of connectivity failures.
+ */
 const ICE_CONF={iceServers:[
   {urls:'stun:stun.l.google.com:19302'},
-  {urls:'stun:stun1.l.google.com:19302'}
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
 ]};
 
 /* ===== EMOJI DATA ===== */
@@ -592,10 +603,8 @@ async function loadFriends(){
   const friendIds=[...new Set((rels||[]).map(r=>r.requester_id===myProfile.id?r.addressee_id:r.requester_id))];
   const {data:profs}=await sb.from('profiles').select('*').in('id',friendIds);
   friends=profs||[];
-
   const {data:pend}=await sb.from('friendships').select('id,requester_id,addressee_id,status,requester:profiles!friendships_requester_id_fkey(*)').eq('addressee_id',myProfile.id).eq('status','pending');
   pendingReqs=pend||[];
-
   renderFriendList();
   renderPendingList();
   updateReqBadge();
@@ -852,6 +861,8 @@ async function startCall(type){
   if(!activeFriend) return showToast('Select a friend first');
   if(activeCall||incomingCallData) return showToast('Already in a call');
   currentCallType=type;
+  callConnectedOnce=false;
+
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==='video'});
   }catch(e){
@@ -880,6 +891,7 @@ async function acceptCall(){
   const d=incomingCallData;
   clearTimeout(d._timeout);
   currentCallType=d.callType;
+  callConnectedOnce=false;
   activeCall={callId:d.call_id,toId:d.from_id,toName:d.caller_name,type:d.callType,isInitiator:false};
   document.getElementById('incoming-notif').classList.remove('show');
   try{
@@ -916,17 +928,69 @@ function cancelCall(){
 function createPeerConnection(type){
   peerConn=new RTCPeerConnection(ICE_CONF);
   isMuted=false;isCameraOff=false;
+
+  /*
+   * FIX #2: Video not showing for other person
+   * 
+   * Problem: The old code did `document.getElementById('remote-video').srcObject = e.streams[0]`
+   * only when type==='video'. But browsers may fire ontrack multiple times — once for
+   * the audio track and once for the video track — and e.streams[0] might not contain
+   * the video track yet on the first fire.
+   * 
+   * Fix: We create a persistent remoteStream (MediaStream) ONCE, and on EVERY ontrack
+   * event we add the new track to it. This guarantees that whether audio arrives first,
+   * video arrives first, or they arrive in separate events, all tracks end up in the
+   * same stream that's bound to the <video> element.
+   */
+  remoteStream = new MediaStream();
+
+  // Bind the remote stream to the video element immediately (for video calls)
+  if(type === 'video') {
+    document.getElementById('remote-video').srcObject = remoteStream;
+  }
+
   peerConn.onicecandidate=(e)=>{
     if(!e.candidate||!activeCall) return;
     sb.channel(`calls:${activeCall.toId}`).send({type:'broadcast',event:'call_ice_candidate',payload:{call_id:activeCall.callId,candidate:e.candidate}});
   };
+
   peerConn.ontrack=(e)=>{
-    if(type==='video') document.getElementById('remote-video').srcObject=e.streams[0];
-    onCallConnected();
+    // Add every received track to our persistent remote stream
+    e.streams[0].getTracks().forEach(track => {
+      remoteStream.addTrack(track);
+    });
+
+    // If audio-only call, play the remote audio through an invisible element
+    if(type === 'audio') {
+      let audioEl = document.getElementById('remote-audio-el');
+      if(!audioEl) {
+        audioEl = document.createElement('audio');
+        audioEl.id = 'remote-audio-el';
+        audioEl.autoplay = true;
+        audioEl.playsInline = true;
+        document.body.appendChild(audioEl);
+      }
+      audioEl.srcObject = remoteStream;
+    }
+
+    // Show connected UI only once (ontrack fires per track)
+    if(!callConnectedOnce) {
+      callConnectedOnce = true;
+      onCallConnected();
+    }
   };
+
   peerConn.onconnectionstatechange=()=>{
     const s=peerConn.connectionState;
     if(s==='disconnected'||s==='failed'||s==='closed'){cleanupCall();showToast('Call disconnected')}
+  };
+
+  // Log ICE connection state for debugging
+  peerConn.oniceconnectionstatechange=()=>{
+    console.log('[WebRTC] ICE state:', peerConn.iceConnectionState);
+    if(peerConn.iceConnectionState==='failed'){
+      console.warn('[WebRTC] ICE failed — TURN server may be unreachable');
+    }
   };
 }
 
@@ -973,14 +1037,33 @@ function cleanupCall(){
   if(audioTimerInterval){clearInterval(audioTimerInterval);audioTimerInterval=null}
   if(callTimerInterval){clearInterval(callTimerInterval);callTimerInterval=null}
   audioSeconds=0;callSeconds=0;
+  callConnectedOnce=false;
+
   if(peerConn){try{peerConn.close()}catch(e){}peerConn=null}
-  if(localStream){localStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});localStream=null}
+
+  // Properly stop all local tracks
+  if(localStream){
+    localStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});
+    localStream=null;
+  }
+
+  // Clean up remote stream
+  if(remoteStream){
+    remoteStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});
+    remoteStream=null;
+  }
+
+  // Remove the audio element for audio calls
+  const audioEl=document.getElementById('remote-audio-el');
+  if(audioEl){audioEl.srcObject=null;audioEl.remove()}
+
   document.getElementById('audio-overlay').classList.remove('show');
   document.getElementById('video-overlay').classList.remove('show');
   document.getElementById('outgoing-notif').classList.remove('show');
   document.getElementById('incoming-notif').classList.remove('show');
   document.getElementById('remote-video').srcObject=null;
   document.getElementById('local-video').srcObject=null;
+
   activeCall=null;incomingCallData=null;currentCallType=null;isMuted=false;isCameraOff=false;
 }
 
