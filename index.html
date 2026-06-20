@@ -29,7 +29,9 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .fg input{width:100%;padding:11px 15px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);outline:none}
 .fg input:focus{border-color:var(--accent)}
 .btn-primary{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
-.auth-error{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:14px;display:none}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.auth-error{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:14px;display:none;word-break:break-word}
+.auth-success{background:rgba(34,211,160,.1);border:1px solid rgba(34,211,160,.3);border-radius:8px;padding:10px 14px;color:var(--green);font-size:13px;margin-bottom:14px;display:none;word-break:break-word}
 
 #app{display:none;height:100vh}
 #app.show{display:flex}
@@ -120,7 +122,6 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .send-btn{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#7c3aed);border:none;border-radius:8px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 #file-input{display:none}
 
-/* AI Suggestions Bar - ADDED */
 #ai-suggest{display:none;align-items:center;gap:6px;padding:6px 18px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto}
 #ai-suggest.show{display:flex}
 .suggest-label{font-size:10px;color:var(--accent2);font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.5px;flex-shrink:0}
@@ -237,16 +238,17 @@ h1,h2,h3{font-family:'Syne',sans-serif}
       <button class="auth-tab" onclick="switchTab('signup')">Create Account</button>
     </div>
     <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
     <div id="login-form">
       <div class="fg"><label>EMAIL</label><input type="email" id="login-email" placeholder="you@example.com"></div>
       <div class="fg"><label>PASSWORD</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In →</button>
     </div>
     <div id="signup-form" style="display:none">
       <div class="fg"><label>USERNAME</label><input type="text" id="signup-username" placeholder="yourname"></div>
       <div class="fg"><label>EMAIL</label><input type="email" id="signup-email" placeholder="you@example.com"></div>
       <div class="fg"><label>PASSWORD</label><input type="password" id="signup-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doSignup()"></div>
-      <button class="btn-primary" onclick="doSignup()">Create Account →</button>
+      <button class="btn-primary" id="signup-btn" onclick="doSignup()">Create Account →</button>
     </div>
   </div>
 </div>
@@ -300,7 +302,6 @@ h1,h2,h3{font-family:'Syne',sans-serif}
         </div>
       </div>
       <div class="msgs" id="msgs" onclick="closeEmojiPicker()"></div>
-      <!-- AI SUGGESTIONS BAR - ADDED -->
       <div id="ai-suggest"></div>
       <div class="typing-row" id="typing-row" style="padding:0 20px;">
         <div class="typing-dots" id="typing-dots" style="display:none"><span></span><span></span><span></span></div>
@@ -426,8 +427,8 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 <script>
 dayjs.extend(dayjs_plugin_relativeTime);
 
-const SUPABASE_URL = 'https://eekwlctegngxdzannddi.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_YhaRLUgoEVB6iFTMJRwwEw_Bi7v-Qnq';
+const SUPABASE_URL = 'https://yketzrmrznbkjpsaptyd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JLEjdUaoWkJJ7vgPBmQuZg_6rTTS8Zt';
 const GROQ_KEY = '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';
 const GROQ_MODEL = 'openai/gpt-oss-20b';
 const { createClient } = supabase;
@@ -455,45 +456,114 @@ function fmtSize(b){return b>1048576?(b/1048576).toFixed(1)+' MB':b>1024?(b/1024
 function fileIcon(n){const e=(n.split('.').pop()||'').toLowerCase();return{pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',mp4:'🎬',mp3:'🎵',zip:'🗜️',rar:'🗜️'}[e]||'📎'}
 function fmtDur(s){const m=Math.floor(s/60),sec=s%60;return m>0?`${m}m ${sec}s`:`${sec}s`}
 
+function showAuthErr(m){const e=document.getElementById('auth-error');e.textContent=m;e.style.display='block';document.getElementById('auth-success').style.display='none'}
+function showAuthOk(m){const e=document.getElementById('auth-success');e.textContent=m;e.style.display='block';document.getElementById('auth-error').style.display='none'}
+function clearAuthMsgs(){document.getElementById('auth-error').style.display='none';document.getElementById('auth-success').style.display='none'}
+
 function switchTab(tab){
+  clearAuthMsgs();
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
   event.target.classList.add('active');
   document.getElementById('login-form').style.display=tab==='login'?'block':'none';
   document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
 }
-function showAuthErr(m){const e=document.getElementById('auth-error');e.textContent=m;e.style.display='block'}
 
 async function doLogin(){
+  clearAuthMsgs();
   const email=document.getElementById('login-email').value.trim(),pass=document.getElementById('login-pass').value;
-  if(!email||!pass) return showAuthErr('Fill in all fields');
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error) return showAuthErr(error.message);
-  onAuth(data.user);
-}
-async function doSignup(){
-  const username=document.getElementById('signup-username').value.trim(),email=document.getElementById('signup-email').value.trim(),pass=document.getElementById('signup-pass').value;
-  if(!username||!email||!pass) return showAuthErr('Fill in all fields');
-  const {data,error}=await sb.auth.signUp({email,password:pass});
-  if(error) return showAuthErr(error.message);
-  if(data.user){
-    const {error:pe}=await sb.from('profiles').insert({id:data.user.id,username,display_name:username,status:'online'});
-    if(pe) return showAuthErr(pe.message);
+  if(!email||!pass) return showAuthErr('Please fill in all fields');
+  const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Signing in...';
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error) return showAuthErr(error.message);
     onAuth(data.user);
-  } else showAuthErr('Check your email to confirm');
+  }catch(e){showAuthErr('Connection error: '+e.message)}
+  finally{btn.disabled=false;btn.textContent='Sign In →'}
 }
+
+async function doSignup(){
+  clearAuthMsgs();
+  const username=document.getElementById('signup-username').value.trim(),
+        email=document.getElementById('signup-email').value.trim(),
+        pass=document.getElementById('signup-pass').value;
+  
+  if(!username||!email||!pass) return showAuthErr('Please fill in all fields');
+  if(username.length<3) return showAuthErr('Username must be at least 3 characters');
+  if(pass.length<6) return showAuthErr('Password must be at least 6 characters');
+  if(!/^[a-zA-Z0-9_]+$/.test(username)) return showAuthErr('Username can only contain letters, numbers, and underscores');
+  
+  const btn=document.getElementById('signup-btn');btn.disabled=true;btn.textContent='Creating account...';
+  
+  try{
+    const {data,error}=await sb.auth.signUp({
+      email,
+      password:pass,
+      options:{
+        data:{username,display_name:username}
+      }
+    });
+    
+    if(error) return showAuthErr(error.message);
+    
+    if(data.user){
+      if(data.session){
+        // Email confirmation disabled - user is logged in immediately
+        // Try to create profile (in case trigger doesn't exist)
+        const {error:pe}=await sb.from('profiles').upsert({
+          id:data.user.id,
+          username:username,
+          display_name:username,
+          status:'online'
+        },{onConflict:'id'});
+        
+        if(pe){
+          console.warn('Profile upsert warning:',pe);
+          // Profile might already exist from trigger, try to continue
+        }
+        onAuth(data.user);
+      } else {
+        // Email confirmation is enabled
+        showAuthOk('Account created! Please check your email to confirm, then sign in.');
+      }
+    } else {
+      showAuthErr('Something went wrong. Please try again.');
+    }
+  }catch(e){showAuthErr('Connection error: '+e.message)}
+  finally{btn.disabled=false;btn.textContent='Create Account →'}
+}
+
 async function doLogout(){
   if(myProfile) await sb.from('profiles').update({status:'offline',last_seen:new Date().toISOString()}).eq('id',myProfile.id);
   await sb.auth.signOut(); location.reload();
 }
+
 async function onAuth(user){
   me=user;
-  const {data:p}=await sb.from('profiles').select('*').eq('id',user.id).single();
-  if(!p) return showAuthErr('Profile not found. Please sign up.');
-  myProfile=p;
+  const {data:p,error:pe}=await sb.from('profiles').select('*').eq('id',user.id).single();
+  
+  if(!p){
+    // Profile doesn't exist, try to create it
+    const username=user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+    const {data:newP,error:ce}=await sb.from('profiles').upsert({
+      id:user.id,
+      username:username,
+      display_name:user.user_metadata?.display_name || username,
+      status:'online'
+    },{onConflict:'id'});
+    
+    if(!newP){
+      console.error('Failed to create profile:',ce);
+      return showAuthErr('Could not create profile. Please contact support.');
+    }
+    myProfile=newP;
+  } else {
+    myProfile=p;
+  }
+  
   await sb.from('profiles').update({status:'online'}).eq('id',user.id);
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app').classList.add('show');
-  document.getElementById('my-av').textContent=p.username[0].toUpperCase();
+  document.getElementById('my-av').textContent=(myProfile.display_name||myProfile.username||'?')[0].toUpperCase();
   loadFriends();
   subscribeCallChannel();
   subscribeFriendEvents();
@@ -570,11 +640,13 @@ async function loadFriends() {
   renderPendingList();
   updateReqBadge();
 }
+
 function updateReqBadge(){
   const b=document.getElementById('req-badge'),l=document.getElementById('req-count-label');
   if(pendingReqs.length){b.style.display='block';l.innerHTML=`<span class="req-count">${pendingReqs.length}</span>`}
   else{b.style.display='none';l.innerHTML=''}
 }
+
 async function renderFriendList(){
   const el=document.getElementById('friend-list');
   if(!friends.length){el.innerHTML='<div style="padding:18px;color:var(--text3);text-align:center;font-size:13px">No friends yet.<br>Click ➕ to add someone!</div>';return}
@@ -588,7 +660,9 @@ async function renderFriendList(){
     el.appendChild(item);
   }
 }
+
 function filterFriends(){const q=document.getElementById('friend-search').value.toLowerCase();document.querySelectorAll('#friend-list .fi').forEach(e=>e.style.display=e.querySelector('.fi-name').textContent.toLowerCase().includes(q)?'':'none')}
+
 function renderPendingList(){
   const el=document.getElementById('pending-list'); el.innerHTML='';
   if(!pendingReqs.length){el.innerHTML='<div style="padding:18px;color:var(--text3);text-align:center;font-size:13px">No pending requests</div>';return}
@@ -597,12 +671,16 @@ function renderPendingList(){
   const s2=document.createElement('div'); s2.className='sec-lbl'; s2.textContent=`Friends (${friends.length})`; el.appendChild(s2);
   friends.forEach(f=>{const d=document.createElement('div'); d.className='fi'; d.onclick=()=>{switchPanel('friends');openChat(f)}; const isOnline=f.status==='online'; d.innerHTML=`<div class="av xs">${(f.username||'?')[0].toUpperCase()}<div class="sdot ${isOnline?'on':''}"></div></div><div class="fi-info"><div class="fi-name">${escH(f.display_name||f.username)}</div><div class="fi-sub ${isOnline?'on':''}">${isOnline?'● Online':`Last seen ${dayjs(f.last_seen).fromNow()}`}</div></div>`; el.appendChild(d)})
 }
+
 function filterPending(){const q=document.getElementById('pending-search').value.toLowerCase();document.querySelectorAll('#pending-list .fi').forEach(e=>e.style.display=e.querySelector('.fi-name')?.textContent.toLowerCase().includes(q)?'':'none')}
+
 async function acceptFriend(id){await sb.from('friendships').update({status:'accepted'}).eq('id',id);await loadFriends();showToast('Friend added!')}
 async function declineFriend(id){await sb.from('friendships').delete().eq('id',id);await loadFriends()}
 function subscribeFriendEvents(){friendSub=sb.channel(`fr:${myProfile.id}`).on('postgres_changes',{event:'*',schema:'public',table:'friendships'},()=>loadFriends()).subscribe()}
+
 function showAddFriendModal(){document.getElementById('add-friend-modal').classList.add('show');document.getElementById('friend-user-results').innerHTML='';document.getElementById('friend-user-search').value=''}
 function closeAddFriendModal(){document.getElementById('add-friend-modal').classList.remove('show')}
+
 async function searchUsersForFriend(){
   const q=document.getElementById('friend-user-search').value.trim(),res=document.getElementById('friend-user-results');
   if(q.length<2){res.innerHTML='';return}
@@ -613,340 +691,265 @@ async function searchUsersForFriend(){
   (data||[]).forEach(user=>{const st=exMap[user.id];const btn=st==='accepted'?`<span class="bsm pend">Friends ✓</span>`:st==='pending'?`<span class="bsm pend">Pending…</span>`:`<button class="bsm add" onclick="sendFriendReq('${user.id}',this)">Add</button>`;const d=document.createElement('div');d.className='ures';d.innerHTML=`<div class="ures-l"><div class="av xs">${(user.username||'?')[0].toUpperCase()}</div><div><div style="font-weight:600;font-size:13px;font-family:'Syne',sans-serif">${escH(user.display_name||user.username)}</div><div style="color:var(--text2);font-size:11px">@${escH(user.username)}</div></div></div>${btn}`;res.appendChild(d)})
   if(!(data||[]).length) res.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px">No users found</div>'
 }
+
 async function sendFriendReq(id,btn){const {error}=await sb.from('friendships').insert({requester_id:myProfile.id,addressee_id:id,status:'pending'});if(error) return showToast(error.message);btn.textContent='Pending…';btn.className='bsm pend';btn.disabled=true;showToast('Request sent!')}
 
 async function openChat(friend) {
   activeFriend = friend;
-
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('active-chat').style.display = 'flex';
   document.getElementById('chat-av').textContent = (friend.display_name || friend.username || '?')[0].toUpperCase();
   document.getElementById('chat-name').textContent = friend.display_name || friend.username || 'Unknown';
-  document.getElementById('chat-status').textContent =
-    friend.status === 'online'
-      ? '● Online'
-      : `Last seen ${dayjs(friend.last_seen).fromNow()}`;
-
-  document.querySelectorAll('.fi').forEach(e => {
-    e.classList.toggle('active', e.dataset.fid === friend.id);
-  });
-
-  if (msgSub) {
-    msgSub.unsubscribe();
-    msgSub = null;
-  }
-  if (typingCh) {
-    typingCh.unsubscribe();
-    typingCh = null;
-  }
-
+  document.getElementById('chat-status').textContent = friend.status === 'online' ? '● Online' : `Last seen ${dayjs(friend.last_seen).fromNow()}`;
+  document.querySelectorAll('.fi').forEach(e => { e.classList.toggle('active', e.dataset.fid === friend.id); });
+  if (msgSub) { msgSub.unsubscribe(); msgSub = null; }
+  if (typingCh) { typingCh.unsubscribe(); typingCh = null; }
   clearTypingIndicator();
   hideSuggestions();
-
   await loadChatMsgs();
-
   const chanKey = [myProfile.id, friend.id].sort().join('-');
-
-  msgSub = sb
-    .channel(`dm:${chanKey}`)
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'messages'
-    }, p => {
-      const m = p.new;
-      const isMatch =
-        (m.sender_id === myProfile.id && m.sent_to === friend.id) ||
-        (m.sender_id === friend.id && m.sent_to === myProfile.id);
-
-      if (isMatch) appendMsg(m);
-    })
-    .subscribe();
-
-  typingCh = sb
-    .channel(`typing:${chanKey}`)
-    .on('broadcast', { event: 'typing' }, payload => {
-      if (payload.payload.uid !== myProfile.id) showFriendTyping(payload.payload.name);
-    })
-    .on('broadcast', { event: 'stop_typing' }, payload => {
-      if (payload.payload.uid !== myProfile.id) clearTypingIndicator();
-    })
-    .subscribe();
+  msgSub = sb.channel(`dm:${chanKey}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+    const m = p.new;
+    const isMatch = (m.sender_id === myProfile.id && m.sent_to === friend.id) || (m.sender_id === friend.id && m.sent_to === myProfile.id);
+    if (isMatch) appendMsg(m);
+  }).subscribe();
+  typingCh = sb.channel(`typing:${chanKey}`).on('broadcast', { event: 'typing' }, payload => { if (payload.payload.uid !== myProfile.id) showFriendTyping(payload.payload.name); }).on('broadcast', { event: 'stop_typing' }, payload => { if (payload.payload.uid !== myProfile.id) clearTypingIndicator(); }).subscribe();
 }
+
 function showFriendTyping(name){clearTimeout(friendTypingTimer);document.getElementById('typing-dots').style.display='flex';document.getElementById('typing-label').textContent=`${name} is typing...`;friendTypingTimer=setTimeout(clearTypingIndicator,3000)}
 function clearTypingIndicator(){document.getElementById('typing-dots').style.display='none';document.getElementById('typing-label').textContent=''}
+function hideSuggestions(){document.getElementById('ai-suggest').classList.remove('show');document.getElementById('ai-suggest').innerHTML='';currentSuggestions=[]}
 
 async function loadChatMsgs() {
   if (!activeFriend) return;
-
-  const { data, error } = await sb
-    .from('messages')
-    .select('*')
-    .or(`and(sender_id.eq.${myProfile.id},sent_to.eq.${activeFriend.id}),and(sender_id.eq.${activeFriend.id},sent_to.eq.${myProfile.id})`)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error(error);
-    chatMsgs = [];
-  } else {
-    chatMsgs = data || [];
-  }
-
+  const { data, error } = await sb.from('messages').select('*').or(`and(sender_id.eq.${myProfile.id},sent_to.eq.${activeFriend.id}),and(sender_id.eq.${activeFriend.id},sent_to.eq.${myProfile.id})`).order('created_at', { ascending: true });
+  if (error) { console.error(error); chatMsgs = []; } else { chatMsgs = data || []; }
   renderMsgs();
 }
 
-// ADDED: appendMsg function
 function appendMsg(m) {
   chatMsgs.push(m);
   const c = document.getElementById('msgs');
-  
-  // Check if we need to add a day divider
   const lastMsg = chatMsgs[chatMsgs.length - 2];
   if (lastMsg) {
     const lastD = dayjs(lastMsg.created_at).format('MMMM D, YYYY');
     const newD = dayjs(m.created_at).format('MMMM D, YYYY');
-    if (lastD !== newD) {
-      const dv = document.createElement('div');
-      dv.className = 'day-div';
-      dv.textContent = newD;
-      c.appendChild(dv);
-    }
+    if (lastD !== newD) { const dv = document.createElement('div'); dv.className = 'day-div'; dv.textContent = newD; c.appendChild(dv); }
   } else {
-    // First message, add day divider
-    const dv = document.createElement('div');
-    dv.className = 'day-div';
-    dv.textContent = dayjs(m.created_at).format('MMMM D, YYYY');
-    c.appendChild(dv);
+    const dv = document.createElement('div'); dv.className = 'day-div'; dv.textContent = dayjs(m.created_at).format('MMMM D, YYYY'); c.appendChild(dv);
   }
-  
   renderOneMsg(m, c);
   c.scrollTop = c.scrollHeight;
-  
-  // Send notification if message is from friend and window not focused
-  if (m.sender_id !== myProfile.id && !document.hasFocus()) {
-    sendMsgNotif(activeFriend.display_name || activeFriend.username, m.content || 'Sent a file');
-  }
+  if (m.sender_id !== myProfile.id && !document.hasFocus()) sendMsgNotif(activeFriend.display_name || activeFriend.username, m.content || 'Sent a file');
 }
 
 function renderMsgs() {
   const c = document.getElementById('msgs');
   c.innerHTML = '';
-
   let lastD = null;
   for (const m of chatMsgs) {
     const d = dayjs(m.created_at).format('MMMM D, YYYY');
-    if (d !== lastD) {
-      const dv = document.createElement('div');
-      dv.className = 'day-div';
-      dv.textContent = d;
-      c.appendChild(dv);
-      lastD = d;
-    }
+    if (d !== lastD) { const dv = document.createElement('div'); dv.className = 'day-div'; dv.textContent = d; c.appendChild(dv); lastD = d; }
     renderOneMsg(m, c);
   }
-
   c.scrollTop = c.scrollHeight;
 }
+
 function renderOneMsg(m, c) {
   const mine = m.sender_id === myProfile.id;
   const row = document.createElement('div');
   row.className = `mrow ${mine ? 'mine' : ''}`;
-
   const initials = activeFriend ? (activeFriend.display_name || activeFriend.username || '?')[0].toUpperCase() : '?';
   const timeStr = dayjs(m.created_at).format('h:mm A');
   let inner = '';
-
   if (m.type === 'call') {
     inner = `<div class="mbub call-ev">${escH('📞 ' + (m.content || 'Call'))}</div><div class="mtime">${timeStr}</div>`;
   } else if (m.type === 'file') {
-    const fb = `<a class="file-bubble" href="${m.file_url || '#'}" target="_blank" download>
-      <span class="file-icon">${fileIcon(m.content || '')}</span>
-      <div class="file-info">
-        <div class="file-name">${escH(m.content || '')}</div>
-        <div class="file-size">${m.file_size ? fmtSize(m.file_size) : ''}</div>
-      </div>
-      <span style="color:var(--accent2);font-size:13px">⬇</span>
-    </a>`;
-    inner = mine
-      ? `<div class="mtime">${timeStr}</div>${fb}`
-      : `<div class="av xs mav">${initials}</div>${fb}<div class="mtime">${timeStr}</div>`;
+    const fb = `<a class="file-bubble" href="${m.file_url || '#'}" target="_blank" download><span class="file-icon">${fileIcon(m.content || '')}</span><div class="file-info"><div class="file-name">${escH(m.content || '')}</div><div class="file-size">${m.file_size ? fmtSize(m.file_size) : ''}</div></div><span style="color:var(--accent2);font-size:13px">⬇</span></a>`;
+    inner = mine ? `<div class="mtime">${timeStr}</div>${fb}` : `<div class="av xs mav">${initials}</div>${fb}<div class="mtime">${timeStr}</div>`;
   } else {
-    inner = mine
-      ? `<div class="mtime">${timeStr}</div><div class="mbub mine">${escH(m.content || '')}</div>`
-      : `<div class="av xs mav">${initials}</div><div class="mbub theirs">${escH(m.content || '')}</div><div class="mtime">${timeStr}</div>`;
+    inner = mine ? `<div class="mtime">${timeStr}</div><div class="mbub mine">${escH(m.content || '')}</div>` : `<div class="av xs mav">${initials}</div><div class="mbub theirs">${escH(m.content || '')}</div><div class="mtime">${timeStr}</div>`;
   }
-
   row.innerHTML = inner;
   c.appendChild(row);
 }
+
 function handleMsgKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();return}if(e.key==='Tab'){e.preventDefault();acceptSuggestion();return}}
-function onMsgInput(el){autoResize(el);broadcastTyping();clearTimeout(suggestTimer);const val=el.value;if(val.length>2)suggestTimer=setTimeout(()=>fetchAISuggestion(val),400);else hideSuggestions()}
-function broadcastTyping(){if(!typingCh||!activeFriend) return;if(!isTyping){isTyping=true;typingCh.send({type:'broadcast',event:'typing',payload:{uid:myProfile.id,name:myProfile.display_name||myProfile.username}})}clearTimeout(typingTimer);typingTimer=setTimeout(()=>{isTyping=false;typingCh.send({type:'broadcast',event:'stop_typing',payload:{uid:myProfile.id}})},2000)}
-function showSuggestions(suggestions,currentText){currentSuggestions=suggestions;const bar=document.getElementById('ai-suggest');bar.innerHTML='<span class="suggest-label">AI ✦</span>';suggestions.slice(0,3).forEach((s,i)=>{const chip=document.createElement('button');chip.className='suggest-chip';chip.textContent=s;chip.onclick=()=>applySuggestion(currentText,s);if(i===0) chip.style.borderColor='rgba(108,99,255,.6)';bar.appendChild(chip)});bar.classList.add('show')}
-function hideSuggestions(){const bar=document.getElementById('ai-suggest');if(bar){bar.classList.remove('show');bar.innerHTML=''}currentSuggestions=[]}
-function acceptSuggestion(){if(currentSuggestions.length) applySuggestion(document.getElementById('msg-input').value,currentSuggestions[0])}
-function applySuggestion(currentText,suggestion){const inp=document.getElementById('msg-input');inp.value=currentText+' '+suggestion;inp.focus();autoResize(inp);hideSuggestions();inp.selectionStart=inp.selectionEnd=inp.value.length}
-async function fetchAISuggestion(text){
-  if(!text.trim()) return hideSuggestions();
-  try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'system',content:'You are a chat autocomplete assistant. Given the start of a message, suggest 3 short next-word or short phrase completions (2-4 words max each). Reply ONLY with a JSON array of 3 strings, no explanation.'},{role:'user',content:`Complete this message: "${text}"`}],max_tokens:60})});
-    const json=await res.json(); let raw=json.choices?.[0]?.message?.content||'[]'; raw=raw.replace(/```json|```/g,'').trim(); const suggestions=JSON.parse(raw); if(Array.isArray(suggestions)&&suggestions.length) showSuggestions(suggestions,text); else hideSuggestions()
-  }catch(e){hideSuggestions()}
+
+function onMsgInput(el){
+  autoResize(el);
+  if(!activeFriend||!typingCh) return;
+  if(!isTyping){isTyping=true;typingCh.send({type:'broadcast',event:'typing',payload:{uid:myProfile.id,name:myProfile.display_name||myProfile.username}})}
+  clearTimeout(typingTimer);
+  typingTimer=setTimeout(()=>{isTyping=false;if(typingCh)typingCh.send({type:'broadcast',event:'stop_typing',payload:{uid:myProfile.id}})},2000);
 }
-async function sendMessage() {
-  if (!activeFriend) return;
 
-  const input = document.getElementById('msg-input');
-  const text = input.value.trim();
-
-  if (!text && !pendingFile) return;
-
-  try {
-    if (pendingFile) {
-      await uploadAndSend(pendingFile, text);
+async function sendMessage(){
+  if(!activeFriend) return;
+  const inp=document.getElementById('msg-input');
+  const text=inp.value.trim();
+  if(!text&&!pendingFile) return;
+  
+  try{
+    if(pendingFile){
+      const fileName=pendingFile.name;
+      const {data:fd,error:fe}=await sb.storage.from('chat-files').upload(`${myProfile.id}/${Date.now()}_${fileName}`,pendingFile);
+      if(fe) return showToast('File upload failed: '+fe.message);
+      const {data:fu}=sb.storage.from('chat-files').getPublicUrl(fd.path);
+      await sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,type:'file',content:fileName,file_url:fu.publicUrl,file_size:pendingFile.size});
       clearFile();
     } else {
-      const { error } = await sb.from('messages').insert({
-        sender_id: myProfile.id,
-        sent_to: activeFriend.id,
-        content: text,
-        type: 'text'
-      });
-      if (error) throw error;
+      await sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,type:'text',content:text});
     }
-
-    input.value = '';
-    input.style.height = 'auto';
-    hideSuggestions();
-    isTyping = false;
-    clearTimeout(typingTimer);
-    if (typingCh) {
-      typingCh.send({
-        type: 'broadcast',
-        event: 'stop_typing',
-        payload: { uid: myProfile.id }
-      });
-    }
-  } catch (err) {
-    showToast(err.message || 'Message failed to send');
-  }
-}
-function onFileSelected(input){const f=input.files[0];if(!f) return;pendingFile=f;document.getElementById('file-preview-icon').textContent=fileIcon(f.name);document.getElementById('file-preview-name').textContent=f.name;document.getElementById('file-preview-bar').classList.add('show');input.value=''}
-function clearFile(){pendingFile=null;document.getElementById('file-preview-bar').classList.remove('show')}
-async function uploadAndSend(file,caption){
-  try{
-    const ext=file.name.split('.').pop(),path=`dm-files/${myProfile.id}/${Date.now()}.${ext}`;
-    const {error:ue}=await sb.storage.from('horizenmessages').upload(path,file,{cacheControl:'3600',upsert:false});
-    if(ue) throw ue;
-    const {data:ud}=sb.storage.from('horizenmessages').getPublicUrl(path);
-    await sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,content:file.name,type:'file',file_url:ud.publicUrl,file_size:file.size});
-    if(caption) await sb.from('messages').insert({sender_id:myProfile.id,sent_to:activeFriend.id,content:caption,type:'text'});
-  }catch(e){showToast('File upload failed: '+e.message)}
+    inp.value='';autoResize(inp);inp.focus();
+    if(isTyping){isTyping=false;if(typingCh)typingCh.send({type:'broadcast',event:'stop_typing',payload:{uid:myProfile.id}})}
+  }catch(e){console.error(e);showToast('Failed to send message')}
 }
 
+function onFileSelected(input){if(input.files[0]){pendingFile=input.files[0];document.getElementById('file-preview-bar').classList.add('show');document.getElementById('file-preview-name').textContent=pendingFile.name;document.getElementById('file-preview-icon').textContent=fileIcon(pendingFile.name)}}
+function clearFile(){pendingFile=null;document.getElementById('file-input').value='';document.getElementById('file-preview-bar').classList.remove('show')}
+
+function sendMsgNotif(title,body){if(Notification.permission==='granted'){new Notification(title,{body,icon:'💬'})}else if(Notification.permission!=='denied'){Notification.requestPermission()}}
+
+// AI Panel
 function toggleAI(){document.getElementById('ai-overlay').classList.toggle('show')}
 async function sendAI(){
-  const inp=document.getElementById('ai-input'),text=inp.value.trim(); if(!text) return;
-  inp.value=''; inp.style.height=''; const c=document.getElementById('ai-msgs');
-  const urow=document.createElement('div');urow.className='mrow mine';urow.innerHTML=`<div class="mbub mine">${escH(text)}</div>`;c.appendChild(urow);
-  const trow=document.createElement('div');trow.className='mrow';trow.innerHTML=`<div class="av xs" style="background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center">🤖</div><div class="mbub theirs" style="margin-left:7px"><div class="ai-typing">...</div></div>`;c.appendChild(trow);c.scrollTop=9999;
+  const inp=document.getElementById('ai-input'),text=inp.value.trim();
+  if(!text) return;
+  const msgs=document.getElementById('ai-msgs');
+  msgs.innerHTML+=`<div style="display:flex;justify-content:flex-end"><div class="mbub mine" style="max-width:85%">${escH(text)}</div></div>`;
+  inp.value='';autoResize(inp);
+  msgs.innerHTML+=`<div style="display:flex;gap:8px"><div class="av xs">🤖</div><div class="mbub ai-msg" style="max-width:85%" id="ai-typing">Thinking...</div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
   aiHistory.push({role:'user',content:text});
   try{
-    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'system',content:'You are Horizen AI, a helpful assistant inside HorizenMessages. Be concise and friendly.'},...aiHistory],max_tokens:1024})});
-    const json=await res.json(); const reply=json.choices?.[0]?.message?.content||'Sorry, I could not respond.';
-    aiHistory.push({role:'assistant',content:reply}); trow.innerHTML=`<div class="av xs" style="background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center">🤖</div><div class="mbub ai-msg" style="margin-left:7px">${escH(reply)}</div>`
-  }catch(e){trow.innerHTML=`<div class="av xs" style="background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center">🤖</div><div class="mbub theirs" style="margin-left:7px;color:var(--red)">Error: ${escH(e.message)}</div>`}
-  c.scrollTop=9999;
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},body:JSON.stringify({model:GROQ_MODEL,messages:[{role:'system',content:'You are a helpful assistant in a messaging app. Be concise.'},...aiHistory.slice(-10)],max_tokens:500})});
+    const d=await r.json();
+    const reply=d.choices?.[0]?.message?.content||'Sorry, I could not generate a response.';
+    aiHistory.push({role:'assistant',content:reply});
+    const el=document.getElementById('ai-typing');if(el)el.textContent=reply;
+  }catch(e){const el=document.getElementById('ai-typing');if(el)el.textContent='Error: Could not reach AI.'}
+  msgs.scrollTop=msgs.scrollHeight;
 }
 
-function requestNotifPermission(){if('Notification' in window&&Notification.permission==='default') Notification.requestPermission()}
-function sendSystemNotif(title,body,icon='📞'){if(!('Notification' in window)||Notification.permission!=='granted') return;const n=new Notification(title,{body});n.onclick=()=>{window.focus();n.close()};setTimeout(()=>n.close(),20000);return n}
-function sendMsgNotif(senderName,text){if(document.hasFocus()) return;sendSystemNotif(`💬 ${senderName}`,text.substring(0,80),'💬')}
+function acceptSuggestion(){if(!currentSuggestions.length)return;const s=currentSuggestions.shift();document.getElementById('msg-input').value=s;autoResize(document.getElementById('msg-input'));renderSuggestions()}
 
-function startRingtone(){try{const ctx=new(window.AudioContext||window.webkitAudioContext)();let beat=0;function ring(){if(!ctx) return;const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.value=beat%2===0?880:1100;gain.gain.setValueAtTime(0,ctx.currentTime);gain.gain.linearRampToValueAtTime(0.18,ctx.currentTime+0.02);gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.22);osc.start();osc.stop(ctx.currentTime+0.25);beat++;if(beat%2===0) ringtoneNode=setTimeout(ring,600);else ringtoneNode=setTimeout(ring,180)} ring(); ringtoneCtx=ctx}catch(e){}}
-function stopRingtone(){clearTimeout(ringtoneNode); ringtoneNode=null; if(ringtoneCtx){try{ringtoneCtx.close()}catch(e){} ringtoneCtx=null}}
-
+// Calls
 function subscribeCallChannel(){
-  callCh=sb.channel(`call:${myProfile.id}`).on('broadcast',{event:'ringing'},p=>handleIncomingRing(p.payload)).on('broadcast',{event:'answer'},p=>handleAnswer(p.payload)).on('broadcast',{event:'ice'},p=>handleRemoteICE(p.payload)).on('broadcast',{event:'decline'},p=>handleDecline(p.payload)).on('broadcast',{event:'hangup'},p=>handleHangup(p.payload)).subscribe()
+  callCh=sb.channel(`call:${myProfile.id}`)
+  .on('broadcast',{event:'offer'},async p=>{incomingCallData=p.payload;showIncomingCall()})
+  .on('broadcast',{event:'answer'},async p=>{handleAnswer(p.payload)})
+  .on('broadcast',{event:'ice'},async p=>{if(peerConn){for(const c of p.payload.candidates)peerConn.addIceCandidate(new RTCIceCandidate(c))}})
+  .on('broadcast',{event:'reject'},async p=>{cancelCall();showToast('Call declined')})
+  .on('broadcast',{event:'end'},async p=>{endCall()})
+  .subscribe();
 }
-function getFriendChannel(friendId){return sb.channel(`call:${friendId}`)}
+
 async function startCall(type){
-  if(!activeFriend) return; if(activeCall) return showToast('Already in a call');
+  if(!activeFriend) return;
   currentCallType=type;
-  try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==='video'})}catch(e){return showToast('Cannot access mic/camera')}
-  peerConn=new RTCPeerConnection(ICE_CONF); localStream.getTracks().forEach(t=>peerConn.addTrack(t,localStream));
-  if(type==='video') document.getElementById('local-video').srcObject=localStream;
-  peerConn.onicecandidate=e=>{if(e.candidate) getFriendChannel(activeFriend.id).send({type:'broadcast',event:'ice',payload:{candidate:e.candidate,from:myProfile.id}})};
-  peerConn.ontrack=e=>{
-    if(type==='video') document.getElementById('remote-video').srcObject=e.streams[0];
-    if(type==='audio'){let ael=document.getElementById('remote-audio');if(!ael){ael=document.createElement('audio');ael.id='remote-audio';ael.autoplay=true;document.body.appendChild(ael)}ael.srcObject=e.streams[0]}
-  };
-  const offer=await peerConn.createOffer(); await peerConn.setLocalDescription(offer);
-  const fc=getFriendChannel(activeFriend.id); await fc.subscribe();
-  fc.send({type:'broadcast',event:'ringing',payload:{from:myProfile.id,fromName:myProfile.display_name||myProfile.username,callType:type,offer:JSON.stringify(offer)}});
-  activeCall={id:Date.now(),type,friendId:activeFriend.id,role:'caller'}; showOutgoingNotif(type,activeFriend);
+  document.getElementById('out-av').textContent=(activeFriend.display_name||activeFriend.username)[0].toUpperCase();
+  document.getElementById('out-name').textContent=activeFriend.display_name||activeFriend.username;
+  document.getElementById('out-notif').classList.add('show');
+  
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==='video'});
+    if(peerConn)peerConn.close();
+    peerConn=new RTCPeerConnection(ICE_CONF);
+    localStream.getTracks().forEach(t=>peerConn.addTrack(t,localStream));
+    
+    const offer=await peerConn.createOffer();
+    await peerConn.setLocalDescription(offer);
+    
+    peerConn.onicecandidate=e=>{if(e.candidate){sb.channel(`call:${activeFriend.id}`).send({type:'broadcast',event:'offer',payload:{from:myProfile.id,fromName:myProfile.display_name||myProfile.username,type,sdp:offer,candidates:[]}});peerConn.onicecandidate=ev=>{if(ev.candidate)sb.channel(`call:${activeFriend.id}`).send({type:'broadcast',event:'ice',payload:{candidates:[ev.candidate]}})}}};
+    
+    sb.channel(`call:${activeFriend.id}`).send({type:'broadcast',event:'offer',payload:{from:myProfile.id,fromName:myProfile.display_name||myProfile.username,type,sdp:offer}});
+    
+    peerConn.ontrack=e=>{if(type==='video'){document.getElementById('remote-video').srcObject=e.streams[0];document.getElementById('outgoing-notif').classList.remove('show');document.getElementById('video-overlay').classList.add('show');document.getElementById('vid-call-name').textContent=activeFriend.display_name||activeFriend.username;document.getElementById('vid-status').textContent='Connected';startCallTimer()}else{document.getElementById('outgoing-notif').classList.remove('show');document.getElementById('audio-overlay').classList.add('show');document.getElementById('audio-call-av').textContent=(activeFriend.display_name||activeFriend.username)[0].toUpperCase();document.getElementById('audio-call-name').textContent=activeFriend.display_name||activeFriend.username;document.getElementById('audio-call-status').textContent='Connected';startAudioTimer()}};
+  }catch(e){cancelCall();showToast('Could not start call: '+e.message)}
 }
-async function handleIncomingRing(payload){
-  if(payload.from===myProfile.id) return;
-  incomingCallData={...payload};
-  const name=payload.fromName,isVideo=payload.callType==='video';
-  document.getElementById('inc-av').textContent=name[0].toUpperCase(); document.getElementById('inc-name').textContent=name; document.getElementById('inc-type').textContent=isVideo?'📹 Video Call':'📞 Audio Call'; document.getElementById('inc-pill').textContent=isVideo?'📹 Incoming Video Call':'📞 Incoming Call'; document.getElementById('incoming-notif').classList.add('show');
-  startRingtone(); sendSystemNotif(isVideo?`📹 Video call from ${name}`:`📞 Call from ${name}`,'Tap to open HorizenMessages and answer',isVideo?'📹':'📞');
+
+function showIncomingCall(){
+  if(!incomingCallData) return;
+  document.getElementById('inc-av').textContent=(incomingCallData.fromName||'?')[0].toUpperCase();
+  document.getElementById('inc-name').textContent=incomingCallData.fromName;
+  document.getElementById('inc-type').textContent=incomingCallData.type==='video'?'Video Call':'Audio Call';
+  document.getElementById('inc-pill').textContent=incomingCallData.type==='video'?'📹 Incoming Video Call':'📞 Incoming Call';
+  document.getElementById('incoming-notif').classList.add('show');
 }
+
 async function acceptCall(){
-  document.getElementById('incoming-notif').classList.remove('show'); stopRingtone(); if(!incomingCallData) return;
-  const {from,fromName,callType,offer}=incomingCallData; currentCallType=callType;
-  try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:callType==='video'})}catch(e){return showToast('Cannot access mic/camera')}
-  peerConn=new RTCPeerConnection(ICE_CONF); localStream.getTracks().forEach(t=>peerConn.addTrack(t,localStream));
-  if(callType==='video'){document.getElementById('local-video').srcObject=localStream;document.getElementById('video-overlay').classList.add('show');document.getElementById('vid-call-name').textContent=fromName;document.getElementById('vid-status').textContent='Connecting...'} else showAudioScreen(fromName,'Connecting...');
-  peerConn.onicecandidate=e=>{if(e.candidate) getFriendChannel(from).send({type:'broadcast',event:'ice',payload:{candidate:e.candidate,from:myProfile.id}})};
-  peerConn.ontrack=e=>{if(callType==='video') document.getElementById('remote-video').srcObject=e.streams[0]; if(callType==='audio'){let ael=document.getElementById('remote-audio'); if(!ael){ael=document.createElement('audio');ael.id='remote-audio';ael.autoplay=true;document.body.appendChild(ael)} ael.srcObject=e.streams[0]}};
-  await peerConn.setRemoteDescription(JSON.parse(offer)); const answer=await peerConn.createAnswer(); await peerConn.setLocalDescription(answer);
-  const fc=getFriendChannel(from); await fc.subscribe(); fc.send({type:'broadcast',event:'answer',payload:{answer:JSON.stringify(answer),from:myProfile.id}});
-  activeCall={id:Date.now(),type:callType,friendId:from,role:'callee',friendName:fromName}; incomingCallData=null;
+  document.getElementById('incoming-notif').classList.remove('show');
+  const caller=incomingCallData;
+  const friend=friends.find(f=>f.id===caller.from);
+  currentCallType=caller.type;
+  
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:caller.type==='video'});
+    if(peerConn)peerConn.close();
+    peerConn=new RTCPeerConnection(ICE_CONF);
+    localStream.getTracks().forEach(t=>peerConn.addTrack(t,localStream));
+    await peerConn.setRemoteDescription(new RTCSessionDescription(caller.sdp));
+    const answer=await peerConn.createAnswer();
+    await peerConn.setLocalDescription(answer);
+    
+    peerConn.onicecandidate=e=>{if(e.candidate)sb.channel(`call:${caller.from}`).send({type:'broadcast',event:'ice',payload:{candidates:[e.candidate]}})};
+    
+    sb.channel(`call:${caller.from}`).send({type:'broadcast',event:'answer',payload:{sdp:answer}});
+    
+    peerConn.ontrack=e=>{if(caller.type==='video'){document.getElementById('remote-video').srcObject=e.streams[0];document.getElementById('local-video').srcObject=localStream;document.getElementById('video-overlay').classList.add('show');document.getElementById('vid-call-name').textContent=caller.fromName;document.getElementById('vid-status').textContent='Connected';startCallTimer()}else{document.getElementById('audio-overlay').classList.add('show');document.getElementById('audio-call-av').textContent=(caller.fromName||'?')[0].toUpperCase();document.getElementById('audio-call-name').textContent=caller.fromName;document.getElementById('audio-call-status').textContent='Connected';startAudioTimer()}};
+  }catch(e){console.error(e);showToast('Could not accept call: '+e.message)}
+  incomingCallData=null;
 }
-async function handleAnswer(payload){if(!peerConn) return; await peerConn.setRemoteDescription(JSON.parse(payload.answer)); hideOutgoingNotif(); if(currentCallType==='video'){document.getElementById('video-overlay').classList.add('show');document.getElementById('vid-call-name').textContent=activeFriend.display_name||activeFriend.username;document.getElementById('vid-status').textContent='Connecting...'} else showAudioScreen(activeFriend.display_name||activeFriend.username,'Connecting...')}
-async function handleRemoteICE(payload){if(!peerConn||!payload.candidate) return; try{await peerConn.addIceCandidate(new RTCIceCandidate(payload.candidate))}catch(e){}}
-function handleDecline(){hideOutgoingNotif(); stopRingtone(); document.getElementById('incoming-notif').classList.remove('show'); cleanupCall(); showToast('Call declined')}
-function handleHangup(){stopRingtone(); cleanupCall(); showToast('Call ended')}
-function showAudioScreen(name,status){document.getElementById('audio-call-av').textContent=name[0].toUpperCase();document.getElementById('audio-call-name').textContent=name;document.getElementById('audio-call-status').textContent=status;document.getElementById('audio-call-timer').textContent='';document.getElementById('audio-overlay').classList.add('show')}
-function hideAudioScreen(){document.getElementById('audio-overlay').classList.remove('show')}
-function showOutgoingNotif(type,friend){document.getElementById('out-av').textContent=(friend.display_name||friend.username)[0].toUpperCase();document.getElementById('out-name').textContent=friend.display_name||friend.username;document.getElementById('out-pill').textContent=type==='video'?'📹 Video Calling...':'📞 Calling...';document.getElementById('outgoing-notif').classList.add('show')}
-function hideOutgoingNotif(){document.getElementById('outgoing-notif').classList.remove('show')}
-function startAudioTimer(){audioSeconds=0;audioTimerInterval=setInterval(()=>{audioSeconds++;document.getElementById('audio-call-timer').textContent=`${Math.floor(audioSeconds/60)}:${String(audioSeconds%60).padStart(2,'0')}`},1000)}
-function startCallTimer(){callSeconds=0;callTimerInterval=setInterval(()=>{callSeconds++;document.getElementById('vid-status').textContent=`${Math.floor(callSeconds/60)}:${String(callSeconds%60).padStart(2,'0')}`},1000)}
-async function cancelCall() {
-  const friendId = activeCall?.friendId || activeFriend?.id;
 
-  if (friendId) {
-    getFriendChannel(friendId).send({
-      type: 'broadcast',
-      event: 'hangup',
-      payload: { from: myProfile.id }
-    });
-  }
+async function handleAnswer(payload){
+  document.getElementById('outgoing-notif').classList.remove('show');
+  await peerConn.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+}
 
-  hideOutgoingNotif();
+function declineCall(){document.getElementById('incoming-notif').classList.remove('show');if(incomingCallData){sb.channel(`call:${incomingCallData.from}`).send({type:'broadcast',event:'reject',payload:{}});incomingCallData=null}}
+
+function cancelCall(){
+  document.getElementById('outgoing-notif').classList.remove('show');
+  document.getElementById('audio-overlay').classList.remove('show');
+  document.getElementById('video-overlay').classList.remove('show');
+  if(activeFriend)sb.channel(`call:${activeFriend.id}`).send({type:'broadcast',event:'end',payload:{}});
   cleanupCall();
 }
-function cleanupCall(){
-  clearInterval(callTimerInterval); clearInterval(audioTimerInterval); callTimerInterval=null; audioTimerInterval=null; callSeconds=0; audioSeconds=0;
-  stopRingtone(); if(localStream){localStream.getTracks().forEach(t=>t.stop()); localStream=null}
-  if(peerConn){peerConn.close(); peerConn=null}
-  document.getElementById('video-overlay').classList.remove('show'); document.getElementById('remote-video').srcObject=null; document.getElementById('local-video').srcObject=null;
-  const ael=document.getElementById('remote-audio'); if(ael) ael.srcObject=null; hideAudioScreen(); hideOutgoingNotif(); document.getElementById('incoming-notif').classList.remove('show');
-  activeCall=null; isMuted=false; isCameraOff=false; currentCallType=null;
-}
-function toggleMuteAudio(){isMuted=!isMuted;if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);const btn=document.getElementById('audio-mute-btn');btn.textContent=isMuted?'🔇':'🎤'}
-function toggleMute(){isMuted=!isMuted;if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);document.getElementById('vid-mute-btn').textContent=isMuted?'🔇':'🎤'}
-function toggleCamera(){isCameraOff=!isCameraOff;if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=!isCameraOff)}
-function toggleSpeaker(){showToast('Speaker routing not available in browser')}
-function endCall(){cleanupCall()}
 
-sb.auth.getSession().then(({data})=>{if(data.session?.user) onAuth(data.session.user)});
-document.getElementById('add-friend-modal').addEventListener('click',function(e){if(e.target===this) closeAddFriendModal()});
-document.getElementById('ai-overlay').addEventListener('click',function(e){if(e.target===this) toggleAI()});
-document.addEventListener('click',e=>{if(!e.target.closest('#emoji-picker')&&!e.target.closest('.emoji-btn')) closeEmojiPicker()});
+function endCall(){
+  document.getElementById('audio-overlay').classList.remove('show');
+  document.getElementById('video-overlay').classList.remove('show');
+  document.getElementById('incoming-notif').classList.remove('show');
+  document.getElementById('outgoing-notif').classList.remove('show');
+  const target=activeFriend?.id||incomingCallData?.from;
+  if(target)sb.channel(`call:${target}`).send({type:'broadcast',event:'end',payload:{}});
+  cleanupCall();
+}
+
+function cleanupCall(){
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
+  if(peerConn){peerConn.close();peerConn=null}
+  if(callTimerInterval){clearInterval(callTimerInterval);callTimerInterval=null}
+  if(audioTimerInterval){clearInterval(audioTimerInterval);audioTimerInterval=null}
+  callSeconds=0;audioSeconds=0;isMuted=false;isCameraOff=false;
+  document.getElementById('remote-video').srcObject=null;
+  document.getElementById('local-video').srcObject=null;
+}
+
+function startCallTimer(){callSeconds=0;const el=document.getElementById('vid-status');callTimerInterval=setInterval(()=>{callSeconds++;el.textContent=fmtDur(callSeconds)},1000)}
+function startAudioTimer(){audioSeconds=0;const el=document.getElementById('audio-call-timer');audioTimerInterval=setInterval(()=>{audioSeconds++;el.textContent=fmtDur(audioSeconds)},1000)}
+
+function toggleMuteAudio(){isMuted=!isMuted;if(localStream)localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);document.getElementById('audio-mute-btn').textContent=isMuted?'🔇':'🎤'}
+function toggleSpeaker(){}
+function toggleMute(){isMuted=!isMuted;if(localStream)localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted);document.getElementById('vid-mute-btn').textContent=isMuted?'🔇':'🎤'}
+function toggleCamera(){isCameraOff=!isCameraOff;if(localStream)localStream.getVideoTracks().forEach(t=>t.enabled=!isCameraOff);document.getElementById('local-video').style.opacity=isCameraOff?'0':'1'}
+
+// Auto-login check
+(async()=>{
+  const {data:{user}}=await sb.auth.getSession();
+  if(user) onAuth(user);
+})();
 </script>
 </body>
 </html>
