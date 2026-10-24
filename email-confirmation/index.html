@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirm your email · HorizenMessages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#6b7280;--ac:#4f46e5;--bd:#e5e7eb}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--card:#181b24;--tx:#eef0f6;--mu:#98a0b3;--bd:#2a2f3d}}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#181b24;--tx:#eef0f6;--mu:#98a0b3;--bd:#2a2f3d}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--tx);font:16px system-ui,-apple-system,"Segoe UI",sans-serif}
+.card{max-width:380px;margin:16px;padding:28px;background:var(--card);border:1px solid var(--bd);border-radius:16px;text-align:center}
+h1{margin:0 0 8px;font-size:22px}p{margin:0 0 16px;color:var(--mu)}
+a{display:inline-block;background:var(--ac);color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px}
+
+body{background:radial-gradient(800px 500px at 10% -10%,rgba(124,92,255,.35),transparent 60%),radial-gradient(700px 500px at 100% 110%,rgba(46,196,255,.22),transparent 60%),#070a14;color:#e8ecf7}
+.card{background:rgba(22,30,58,.62);backdrop-filter:blur(18px);border:1px solid rgba(130,150,255,.16);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:rise .5s ease both}
+h1{font-size:28px;background:linear-gradient(135deg,#6ea8ff,#7c5cff 55%,#c05bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+p{color:#8a95b5}a{background:linear-gradient(135deg,#6ea8ff,#7c5cff 55%,#c05bff);font-weight:600;box-shadow:0 8px 22px rgba(124,92,255,.4)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+body{font-family:"Inter",system-ui,sans-serif;letter-spacing:-.011em}h1{letter-spacing:-.025em}</style></head><body>
+<div class="card">
+ <h1 id="h">Confirming…</h1>
+ <p id="m">One moment.</p>
+ <a id="go" href="/" hidden>Open HorizenMessages</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL='https://wzfdomantqeaedfexpgq.supabase.co';
+const SB_KEY='sb_publishable_vrz02Sm0olhxPqgc1MihJg_mrEMh7MG';
+const APP_URL='/'; // where HorizenMessages lives, e.g. https://website.com/messages.html
+
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const say=(h,m)=>{document.getElementById('h').textContent=h;document.getElementById('m').textContent=m};
+
+(async()=>{
+  // 1. Check localStorage (set to "confirmation" when the signup email was sent)
+  if(localStorage.getItem('email')!=='confirmation')
+    return say('Can’t confirm here','Open this link in the same browser you signed up with.');
+
+  // 2. supabase-js reads the tokens from the email link and signs the user in
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)
+    return say('Link not verified','The link may have expired. Try signing up again.');
+
+  // 3. Activate the account through the approved_acounts table
+  const u=session.user;
+  const{error}=await sb.from('approved_acounts').upsert({user_id:u.id,email:u.email});
+  if(error)return say('Activation failed',error.message);
+
+  localStorage.removeItem('email');
+  say('Email confirmed','Your account is activated.');
+  const a=document.getElementById('go');a.href=APP_URL;a.hidden=false;
+})();
+</script>
+</body></html>
